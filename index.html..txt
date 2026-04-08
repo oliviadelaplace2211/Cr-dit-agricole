@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Banque Ultra Pro</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: linear-gradient(to right, #001f4d, #003366);
+    color: white;
+    text-align: center;
+}
+
+.box {
+    background: white;
+    color: black;
+    padding: 20px;
+    margin: 20px auto;
+    width: 320px;
+    border-radius: 10px;
+}
+
+input {
+    padding: 10px;
+    width: 90%;
+    margin: 5px 0;
+}
+
+button {
+    padding: 10px;
+    width: 100%;
+    margin-top: 5px;
+    background: #003366;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+.solde {
+    font-size: 22px;
+    color: green;
+}
+
+/* Carte */
+.card {
+    width: 300px;
+    height: 180px;
+    background: linear-gradient(45deg, gold, orange);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px auto;
+    color: black;
+}
+
+/* Clavier PIN */
+.keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.key {
+    padding: 15px;
+    background: #003366;
+    color: white;
+    font-size: 18px;
+    border-radius: 5px;
+}
+</style>
+
+</head>
+
+<body>
+
+<!-- PIN -->
+<div class="box" id="pinBox">
+    <h2>🔐 Code PIN</h2>
+    <h1 id="pinDisplay">****</h1>
+
+    <div class="keypad">
+        <div class="key" onclick="addPin(1)">1</div>
+        <div class="key" onclick="addPin(2)">2</div>
+        <div class="key" onclick="addPin(3)">3</div>
+        <div class="key" onclick="addPin(4)">4</div>
+        <div class="key" onclick="addPin(5)">5</div>
+        <div class="key" onclick="addPin(6)">6</div>
+        <div class="key" onclick="addPin(7)">7</div>
+        <div class="key" onclick="addPin(8)">8</div>
+        <div class="key" onclick="addPin(9)">9</div>
+        <div class="key" onclick="clearPin()">C</div>
+        <div class="key" onclick="addPin(0)">0</div>
+        <div class="key" onclick="checkPin()">OK</div>
+    </div>
+</div>
+
+<!-- REGISTER -->
+<div class="box" id="registerBox" style="display:none;">
+    <h2>Créer compte</h2>
+    <input id="newUser" placeholder="Nom">
+    <input id="newPass" type="password" placeholder="Mot de passe">
+    <button onclick="register()">S’inscrire</button>
+</div>
+
+<!-- LOGIN -->
+<div class="box" id="loginBox" style="display:none;">
+    <h2>Connexion</h2>
+    <input id="user" placeholder="Nom">
+    <input id="pass" type="password" placeholder="Mot de passe">
+    <button onclick="login()">Connexion</button>
+</div>
+
+<!-- COMPTE -->
+<div id="compteBox" style="display:none;">
+
+<div class="card">
+    <h3>💳 Carte</h3>
+    <p id="cardName"></p>
+    <p>**** **** **** 5678</p>
+</div>
+
+<div class="box">
+    <h2>Solde : <span id="solde"></span> €</h2>
+
+    <input id="montant" type="number" placeholder="Montant">
+    <button onclick="deposer()">Déposer</button>
+    <button onclick="retirer()">Retirer</button>
+
+    <h3>Envoyer de l'argent</h3>
+    <input id="dest" placeholder="Nom du destinataire">
+    <button onclick="transfer()">Envoyer</button>
+
+    <h3>Historique</h3>
+    <div id="historique"></div>
+
+    <button onclick="logout()">Déconnexion</button>
+</div>
+
+</div>
+
+<script>
+
+let users = JSON.parse(localStorage.getItem("users")) || [];
+let currentUser = null;
+let pinInput = "";
+
+// PIN
+function addPin(n) {
+    if(pinInput.length < 4) {
+        pinInput += n;
+        document.getElementById("pinDisplay").innerText = "*".repeat(pinInput.length);
+    }
+}
+
+function clearPin() {
+    pinInput = "";
+    document.getElementById("pinDisplay").innerText = "****";
+}
+
+function checkPin() {
+    if(pinInput === "0000") {
+        document.getElementById("pinBox").style.display = "none";
+        document.getElementById("loginBox").style.display = "block";
+        document.getElementById("registerBox").style.display = "block";
+    } else {
+        alert("PIN incorrect");
+        clearPin();
+    }
+}
+
+// REGISTER
+function register() {
+    let name = newUser.value;
+    let pass = newPass.value;
+
+    users.push({name, pass, solde: 2000, historique: []});
+    localStorage.setItem("users", JSON.stringify(users));
+    alert("Compte créé");
+}
+
+// LOGIN
+function login() {
+    let name = user.value;
+    let pass = pass.value;
+
+    let u = users.find(x => x.name === name && x.pass === pass);
+
+    if(u) {
+        currentUser = u;
+        loginBox.style.display = "none";
+        registerBox.style.display = "none";
+        compteBox.style.display = "block";
+        update();
+    } else {
+        alert("Erreur");
+    }
+}
+
+// UPDATE
+function update() {
+    solde.innerText = currentUser.solde;
+    cardName.innerText = currentUser.name;
+
+    let h = "";
+    currentUser.historique.forEach(e => h += "<p>"+e+"</p>");
+    historique.innerHTML = h;
+
+    localStorage.setItem("users", JSON.stringify(users));
+}
+
+// ACTIONS
+function deposer() {
+    let m = parseInt(montant.value);
+    currentUser.solde += m;
+    currentUser.historique.push("Dépôt +"+m+"€");
+    update();
+}
+
+function retirer() {
+    let m = parseInt(montant.value);
+    currentUser.solde -= m;
+    currentUser.historique.push("Retrait -"+m+"€");
+    update();
+}
+
+// TRANSFERT
+function transfer() {
+    let d = dest.value;
+    let m = parseInt(montant.value);
+
+    let receiver = users.find(u => u.name === d);
+
+    if(receiver && m > 0) {
+        currentUser.solde -= m;
+        receiver.solde += m;
+
+        currentUser.historique.push("Envoyé à "+d+" : -"+m+"€");
+        receiver.historique.push("Reçu de "+currentUser.name+" : +"+m+"€");
+
+        update();
+    } else {
+        alert("Erreur transfert");
+    }
+}
+
+// LOGOUT
+function logout() {
+    location.reload();
+}
+
+</script>
+
+</body>
+</html>
